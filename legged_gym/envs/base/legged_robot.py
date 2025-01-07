@@ -635,44 +635,44 @@ class LeggedRobot(BaseTask):
 
     #------------ reward functions----------------
     def _reward_lin_vel_z(self):
-        # 惩罚z方向的速度，取平方
+        # Penalize z axis base linear velocity
         return torch.square(self.base_lin_vel[:, 2])
     
     def _reward_ang_vel_xy(self):
-        # x，y方向上的角速度的平方和
+        # Penalize xy axes base angular velocity
         return torch.sum(torch.square(self.base_ang_vel[:, :2]), dim=1)
     
     def _reward_orientation(self):
-        # x 和 y 轴方向上的重力投影平方和
+        # Penalize non flat base orientation
         return torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
 
     def _reward_base_height(self):
-        # 高度差的平方和
+        # Penalize base height away from target
         base_height = self.root_states[:, 2]
         return torch.square(base_height - self.cfg.rewards.base_height_target)
     
     def _reward_torques(self):
-        # 所有关节力矩的平方和
+        # Penalize torques
         return torch.sum(torch.square(self.torques), dim=1)
 
     def _reward_dof_vel(self):
-        # 所有关节速度的平方和
+        # Penalize dof velocities
         return torch.sum(torch.square(self.dof_vel), dim=1)
     
     def _reward_dof_acc(self):
-        # 所有关节加速度的平方和
+        # Penalize dof accelerations
         return torch.sum(torch.square((self.last_dof_vel - self.dof_vel) / self.dt), dim=1)
     
     def _reward_action_rate(self):
-        # 动作变化的平方和
+        # Penalize changes in actions
         return torch.sum(torch.square(self.last_actions - self.actions), dim=1)
     
     def _reward_collision(self):
-        # 每个环境中 碰撞点的数量
+        # Penalize collisions on selected bodies
         return torch.sum(1.*(torch.norm(self.contact_forces[:, self.penalised_contact_indices, :], dim=-1) > 0.1), dim=1)
     
     def _reward_termination(self):
-        # 计算意外终止的环境的张量
+        # Terminal reward / penalty
         return self.reset_buf * ~self.time_out_buf
     
     def _reward_dof_pos_limits(self):
@@ -714,14 +714,14 @@ class LeggedRobot(BaseTask):
         return rew_airTime
     
     def _reward_stumble(self):
-        # 防止xy方向上的接触力比z方向大很多
+        # Penalize feet hitting vertical surfaces
         return torch.any(torch.norm(self.contact_forces[:, self.feet_indices, :2], dim=2) >\
              5 *torch.abs(self.contact_forces[:, self.feet_indices, 2]), dim=1)
         
     def _reward_stand_still(self):
-        # 速度小于0.1的时候保持在静止
+        # Penalize motion at zero commands
         return torch.sum(torch.abs(self.dof_pos - self.default_dof_pos), dim=1) * (torch.norm(self.commands[:, :2], dim=1) < 0.1)
 
     def _reward_feet_contact_forces(self):
-        # 防止过大的接触力
+        # penalize high contact forces
         return torch.sum((torch.norm(self.contact_forces[:, self.feet_indices, :], dim=-1) -  self.cfg.rewards.max_contact_force).clip(min=0.), dim=1)

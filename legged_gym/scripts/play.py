@@ -25,11 +25,6 @@ def play(args):
 
     env_cfg.env.test = True
 
-    env.commands[:, 0] = 0.0    # 1.0
-    env.commands[:, 1] = 0.
-    env.commands[:, 2] = 0.
-    env.commands[:, 3] = 0.
-    
     # prepare environment
     env, _ = task_registry.make_env(name=args.task, args=args, env_cfg=env_cfg)
     obs = env.get_observations()
